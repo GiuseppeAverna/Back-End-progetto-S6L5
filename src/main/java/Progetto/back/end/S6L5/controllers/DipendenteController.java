@@ -1,7 +1,14 @@
 package Progetto.back.end.S6L5.controllers;
 import Progetto.back.end.S6L5.entities.Dipendente;
+import Progetto.back.end.S6L5.exceptions.BadRequestException;
+import Progetto.back.end.S6L5.payloads.dipendenti.NewDipendenteDTO;
+import Progetto.back.end.S6L5.payloads.dipendenti.NewDipendenteResponseDTO;
 import Progetto.back.end.S6L5.services.DipendenteService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,25 +20,32 @@ public class DipendenteController {
     @Autowired
     private DipendenteService dipendentiService;
 
-    @GetMapping
-    private List<Dipendente> getAllDipendenti() {
-       return this.dipendentiService.getDipendentiList();
+    @GetMapping("")
+    public Page<Dipendente> getAuthors(@RequestParam(defaultValue = "0") int page,
+                                   @RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue = "id") String sortBy) {
+        return dipendentiService.getAuthors(page, size, sortBy);
     }
-    @PostMapping
-    private Dipendente saveDipendenti(@RequestBody Dipendente body) {
-        return this.dipendentiService.saveDipendente(body);
+    @PostMapping("")
+    @ResponseStatus(HttpStatus.CREATED)
+    public NewDipendenteResponseDTO saveDipendente(@RequestBody @Validated NewDipendenteDTO body, BindingResult validation) throws Exception {
+        if (validation.hasErrors()) {
+            throw new BadRequestException(validation.getAllErrors());
+        }
+        Dipendente newDipendente = dipendentiService.saveDipendente(body);
+        return new NewDipendenteResponseDTO(newDipendente.getId());
     }
     @GetMapping("/{dipendenteId}")
-    private Dipendente findDipendenteById(@PathVariable long dipendenteId) {
-        return this.dipendentiService.findById(dipendenteId);
+    public Dipendente findById(@PathVariable int authorId) {
+        return dipendentiService.findById(authorId);
     }
     @PutMapping("/{dipendenteId}")
-    private Dipendente findDipendenteByIdAndUpdate(@PathVariable long dipendenteId, @RequestBody Dipendente body) {
-        return this.dipendentiService.findByIdAndUpdate(dipendenteId, body);
+    public Dipendente findAndUpdate(@PathVariable int authorId, @RequestBody Dipendente body) {
+        return dipendentiService.findByIdAndUpdate(authorId, body);
     }
     @DeleteMapping("/{dipendenteId}")
-    private void findDipendenteByIdAndDelete(@PathVariable long dipendenteId) {
-        this.dipendentiService.findByIdAndDelete(dipendenteId);
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void findAndDelete(@PathVariable int authorId) {
+        dipendentiService.findByIdAndDelete(authorId);
     }
 
 

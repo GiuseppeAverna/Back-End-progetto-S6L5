@@ -1,64 +1,62 @@
 package Progetto.back.end.S6L5.services;
 
 import Progetto.back.end.S6L5.entities.Dipendente;
+import Progetto.back.end.S6L5.exceptions.BadRequestException;
 import Progetto.back.end.S6L5.exceptions.NotFoundException;
+import Progetto.back.end.S6L5.payloads.dipendenti.NewDipendenteDTO;
+import Progetto.back.end.S6L5.repositories.DipendenteRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 @Service
+
 public class DipendenteService {
+    @Autowired
+    private DipendenteRepository dipendenteRepository;
     private List<Dipendente> dipendentiList = new ArrayList<>();
 
-    public List<Dipendente> getDipendentiList() {
-        return this.dipendentiList;
+    public Page<Dipendente> getAuthors(int page, int size, String sort) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
+        return dipendenteRepository.findAll(pageable);
     }
 
-    public Dipendente saveDipendente(Dipendente body) {
-        Random rndm = new Random();
-        body.setId(rndm.nextLong(1, 1000));
-        this.dipendentiList.add(body);
-        return body;
+    public Dipendente saveDipendente(NewDipendenteDTO body) throws IOException {
+        dipendenteRepository.findByEmail(body.email()).ifPresent(dipendente -> {
+            throw new BadRequestException("L'email"+ body.email() + "è già stata utilizzata");
+        });
+      Dipendente newDipendente = new Dipendente();
+      newDipendente.setNome(body.nome());
+      newDipendente.setUsername(body.username());
+      newDipendente.setCognome(body.cognome());
+      newDipendente.setEmail(body.email());
+
+
+        return dipendenteRepository.save(newDipendente);
     }
 
     public Dipendente findById(long id) {
-        Dipendente found = null;
-        for (Dipendente dipendente : this.dipendentiList) {
-            if (dipendente.getId() == id) found = dipendente;
-
-        }
-        if (found==null)throw new NotFoundException(id);
-        else return found;
+        return dipendenteRepository.findById(id).orElseThrow(() -> new NotFoundException(id));
     }
-    public Dipendente findByIdAndUpdate (long id, Dipendente updatedDipendente) {
-        Dipendente found =null;
-        for(Dipendente dipendente: this.dipendentiList) {
-            if (dipendente.getId() == id) {
-                found = dipendente;
-                found.setUsername(updatedDipendente.getUsername());
-                found.setNome(updatedDipendente.getNome());
-                found.setCognome(updatedDipendente.getCognome());
-                found.setEmail(updatedDipendente.getEmail());
-            }
+    public Dipendente findByIdAndUpdate(long id, Dipendente body) {
 
-        }
-        if (found == null) throw new NotFoundException(id);
-        else return found;
+        Dipendente found = this.findById(id);
+        found.setEmail(body.getEmail());
+        found.setNome(body.getNome());
+        found.setCognome(body.getCognome());
+        return dipendenteRepository.save(found);
     }
-    public void findByIdAndDelete(long id) {
-        Iterator<Dipendente> iterator = this.dipendentiList.iterator();
-        while(iterator.hasNext()){
-            Dipendente current = iterator.next();
-            if (current.getId() == id) {
-                iterator.remove();
-            }
-        }
-
-
-
+    public void findByIdAndDelete(int id) {
+        Dipendente found = this.findById(id);
+        dipendenteRepository.delete(found);
     }
 
 }
